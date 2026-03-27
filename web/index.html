@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>小高手交易监控面板</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-2: #0b1426;
+      --panel: rgba(15, 23, 42, 0.88);
+      --panel-2: rgba(17, 24, 39, 0.92);
+      --line: rgba(148, 163, 184, 0.16);
+      --text: #eef4ff;
+      --muted: #9fb0d3;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #60a5fa;
+      --cyan: #22d3ee;
+      --shadow: 0 16px 60px rgba(0, 0, 0, 0.28);
+      --radius: 18px;
+      --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background:
+        radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 28%),
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.10), transparent 24%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      color: var(--text);
+      padding: 20px;
+    }
+    .wrap { max-width: 1720px; margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .compact-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .mini-stat {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(11, 20, 38, .72);
+      min-height: 94px;
+    }
+    .mini-stat .label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .mini-stat .value { font-size: 24px; font-weight: 700; line-height: 1.1; }
+    .mini-stat .sub { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    details.card-summary { border: 1px solid rgba(159,176,211,.08); border-radius: 14px; background: rgba(7,17,31,.18); }
+    details.card-summary summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: #dce7ff;
+      font-weight: 600;
+    }
+    details.card-summary summary::-webkit-details-marker { display: none; }
+    .summary-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .scroll-table {
+      max-height: 132px;
+      overflow-y: auto;
+    }
+    .pnl-pos { color: var(--green); font-weight: 700; }
+    .pnl-neg { color: var(--red); font-weight: 700; }
+    }
+    h1 { margin: 0; font-size: 30px; letter-spacing: -0.03em; }
+    h2 { margin: 0 0 14px; font-size: 18px; }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+    .hero-grid, .grid, .triple-grid {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 14px;
+      align-items: start;
+    }
+    .hero-grid { grid-template-columns: minmax(0, 1.2fr) minmax(460px, 1.1fr); }
+    .side-stack {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+    .grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .triple-grid { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+    }
+    .summary-card {
+      min-height: 128px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .summary-label { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    .summary-value { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; }
+    .muted { color: var(--muted); }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      margin-right: 8px;
+    }
+    .good { color: var(--green); border-color: rgba(34,197,94,.35); }
+    .bad { color: var(--red); border-color: rgba(239,68,68,.35); }
+    .warn { color: var(--yellow); border-color: rgba(245,158,11,.35); }
+    .status-box {
+      padding: 12px 14px;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .status-good { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.35); color: var(--green); }
+    .status-warn { background: rgba(245,158,11,.10); border-color: rgba(245,158,11,.35); color: var(--yellow); }
+    .status-bad { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.35); color: var(--red); }
+    .plan-banner {
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid rgba(159,176,211,.08);
+      border-radius: 14px;
+      background: rgba(7, 17, 31, .18);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(159,176,211,.10);
+      vertical-align: top;
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    th {
+      color: #dce7ff;
+      white-space: nowrap;
+      width: 34%;
+      background: rgba(255,255,255,.015);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .mono { font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace; }
+    .small { font-size: 12px; }
+    .control-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    input {
+      background: rgba(11, 20, 38, .85);
+      color: var(--text);
+      border: 1px solid rgba(148,163,184,.22);
+      min-width: 120px;
+    }
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,.26);
+      background: linear-gradient(180deg, #3f4756, #2f3746);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all .18s ease;
+    }
+    button:hover { border-color: rgba(96,165,250,.45); }
+    button.btn-off {
+      background: linear-gradient(180deg, #4b5563, #374151);
+      border-color: rgba(148,163,184,.35);
+      color: #f3f4f6;
+    }
+    button.btn-on {
+      background: linear-gradient(180deg, #22c55e, #15803d);
+      border-color: rgba(34,197,94,.55);
+      color: #f0fdf4;
+    }
+    button.btn-loading {
+      background: linear-gradient(180deg, #f59e0b, #d97706);
+      border-color: rgba(245,158,11,.55);
+      color: #fff7ed;
+      cursor: wait;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 1280px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 980px) {
+      body { padding: 14px; }
+      .grid, .triple-grid { grid-template-columns: 1fr; }
+      .card { padding: 15px 14px; }
+      th, td { font-size: 12px; padding: 9px 8px; }
+      .summary-value { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>📉 小高手交易监控面板</h1>
+        <div class="subtitle">Hyperliquid API / 多周期风控 / 执行监督 / Kill Switch</div>
+      </div>
+      <div class="small muted">老板模式：风险优先，收益第二</div>
+    </div>
+
+    <div class="compact-grid">
+      <div class="mini-stat"><div class="label">运行模式</div><div id="mode" class="value">-</div><div class="sub">主循环 / 自动模式总览</div></div>
+      <div class="mini-stat"><div class="label">最近更新时间</div><div id="updated" class="value" style="font-size:20px;">-</div><div class="sub">看系统刷新是否正常推进</div></div>
+      <div class="mini-stat"><div class="label">账户净值</div><div id="accountValue" class="value">-</div><div class="sub">Spot / Perps 汇总参考</div></div>
+      <div class="mini-stat"><div class="label">风控状态</div><div id="riskStatus" class="value" style="font-size:18px;">-</div><div class="sub">当前是否允许进入执行</div></div>
+    </div>
+
+    <div class="hero-grid">
+      <div class="card">
+        <div class="section-title">
+          <h2>交易计划</h2>
+          <span id="planBadge" class="badge warn">观察中</span>
+        </div>
+        <div id="planBanner" class="plan-banner status-warn">读取中...</div>
+        <div class="table-wrap">
+          <table id="planTable"></table>
+        </div>
+      </div>
+
+      <div class="side-stack">
+        <div class="card">
+          <div class="section-title">
+            <h2>实盘控制</h2>
+            <span id="liveModeBadge" class="badge warn">未开启</span>
+          </div>
+          <div id="liveToggleStatus" class="status-box status-warn">读取中...</div>
+          <div class="control-row">
+            <button id="liveToggleBtn">切换实盘开关</button>
+            <button id="autoTestToggleBtn">切换自动测试单</button>
+            <button id="autoLiveToggleBtn">切换自动正常单</button>
+          </div>
+          <div class="small muted" style="margin-top:10px;">开启实盘后，自动测试单/自动正常单才有实际执行意义；自动正常单风险更高。</div>
+        </div>
+
+        <div class="card">
+          <h2>风控参数设置</h2>
+          <div id="riskSettingsStatus" class="status-box status-warn">读取中...</div>
+          <div class="control-row">
+            <label>账户基准(USDC) <input id="baseEquityInput" type="number" step="0.01" min="0" style="margin-left:8px;padding:8px;border-radius:8px;"></label>
+            <label>单笔风险(%) <input id="riskPctInput" type="number" step="0.1" min="0" max="20" style="margin-left:8px;padding:8px;border-radius:8px;"></label>
+            <button id="saveRiskSettingsBtn">保存设置</button>
+          </div>
+          <div class="small muted" id="riskSettingsHint" style="margin-top:10px;">默认单笔风险 8%，最高可手动设置到 20%；账户基准不得超过当前账户总金额。</div>
+        </div>
+
+        <div class="card">
+          <h2>本地交易记录统计</h2>
+          <details class="card-summary">
+            <summary>
+              <span>查看交易记录</span>
+              <span id="tradeRecordSummary" class="summary-chip">读取中...</span>
+            </summary>
+            <div class="grid" style="margin-bottom:12px;">
+              <div class="card"><div class="small muted">累计毛盈亏</div><div id="tradeGrossPnl" class="summary-value">-</div></div>
+              <div class="card"><div class="small muted">累计净盈亏</div><div id="tradeNetPnl" class="summary-value">-</div></div>
+              <div class="card"><div class="small muted">胜率 / 盈利笔数</div><div id="tradeWinStats" class="summary-value">-</div></div>
+            </div>
+            <div class="table-wrap scroll-table"><table id="tradeRecordTable"></table></div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2>持仓明细</h2>
+      <div class="small muted" id="positionsSnapshotMeta" style="margin-bottom:8px;">读取中...</div>
+      <div class="table-wrap"><table id="positionsTable"></table></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Open Orders</h2>
+      <div class="small muted" id="ordersSnapshotMeta" style="margin-bottom:8px;">读取中...</div>
+      <div class="table-wrap"><table id="ordersTable"></table></div>
+    </div>
+
+    <div class="hero-grid">
+      <div class="card">
+        <h2>执行摘要</h2>
+        <div class="table-wrap"><table id="executionSummaryTable"></table></div>
+      </div>
+      <div class="side-stack">
+        <div class="grid" style="margin-bottom:0;">
+          <div class="card">
+            <h2>账户状态</h2>
+            <div class="table-wrap"><table id="accountTable"></table></div>
+          </div>
+          <div class="card">
+            <h2>市场结构判断</h2>
+            <div class="table-wrap"><table id="frameworkTable"></table></div>
+          </div>
+        </div>
+        <div class="grid" style="margin-bottom:0;">
+          <div class="card">
+            <h2>保护单摘要</h2>
+            <div class="table-wrap"><table id="protectionSummaryTable"></table></div>
+          </div>
+          <div class="card">
+            <h2>Kill Switch 预演</h2>
+            <div class="table-wrap"><table id="killSwitchTable"></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="triple-grid">
+      <div class="side-stack">
+        <div class="card">
+          <h2>信号评分</h2>
+          <div class="table-wrap"><table id="signalTable"></table></div>
+        </div>
+        <div class="card">
+          <h2>杠杆规则</h2>
+          <details class="card-summary">
+            <summary>
+              <span>查看杠杆分档</span>
+              <span id="leverageSummary" class="summary-chip">读取中...</span>
+            </summary>
+            <div class="table-wrap"><table id="leveragePolicyTable"></table></div>
+          </details>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="card">
+          <h2>真实执行就绪探针</h2>
+          <div id="liveProbeStatus"></div>
+          <div class="table-wrap"><table id="liveProbeTable"></table></div>
+        </div>
+        <div class="card">
+          <h2>测试单规则</h2>
+          <details class="card-summary">
+            <summary>
+              <span>查看测试单细则</span>
+              <span class="summary-chip">小资金 / 强止损 / 日亏损上限</span>
+            </summary>
+            <div class="table-wrap"><table id="testRulesTable"></table></div>
+          </details>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Reduce-Only 本地签名验证</h2>
+        <div class="table-wrap"><table id="reduceOnlyTable"></table></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2>K线缓存状态</h2>
+      <div id="cacheStatusBox" class="status-box status-warn">读取中...</div>
+      <details class="card-summary" open>
+        <summary>
+          <span>查看缓存明细</span>
+          <span id="cacheSummary" class="summary-chip">读取中...</span>
+        </summary>
+        <div class="table-wrap"><table id="cacheStatusTable"></table></div>
+      </details>
+    </div>
+
+    <div class="triple-grid">
+      <div class="card">
+        <h2>MACD 背离交易计划</h2>
+        <div id="macdPlanStatus" class="status-box status-warn">读取中...</div>
+        <details class="card-summary" open>
+          <summary>
+            <span>查看 MACD 计划明细</span>
+            <span id="macdPlanSummary" class="summary-chip">读取中...</span>
+          </summary>
+          <div class="table-wrap"><table id="macdPlanTable"></table></div>
+        </details>
+      </div>
+      <div class="card">
+        <h2>执行预演</h2>
+        <div id="executionModeStatus" class="status-box status-warn">读取中...</div>
+        <div class="table-wrap"><table id="executionTable"></table></div>
+      </div>
+      <div class="card">
+        <h2>自动模式状态</h2>
+        <div id="autoModeStatus" class="status-box status-warn">读取中...</div>
+        <div class="table-wrap"><table id="autoModeTable"></table></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>市场监控</h2>
+      <div class="table-wrap"><table id="marketTable"></table></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h2>最近执行日志</h2>
+      <details class="card-summary">
+        <summary>
+          <span>查看执行日志</span>
+          <span id="eventsSummary" class="summary-chip">读取中...</span>
+        </summary>
+        <div class="table-wrap"><table id="eventsTable"></table></div>
+      </details>
+    </div>
+  </div>
+
+  <script>
+    function safe(v, fallback='-') { return v ?? fallback; }
+    function maskAddress(addr) {
+      if (!addr || addr === '未配置') return addr || '未配置';
+      if (String(addr).length < 12) return addr;
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    }
+    function pnlClass(v) {
+      const n = Number(v || 0);
+      if (n > 0) return 'pnl-pos';
+      if (n < 0) return 'pnl-neg';
+      return '';
+    }
+
+    const accountRenderCache = {
+      positionsHtml: '',
+      ordersHtml: '',
+      positionsMeta: '读取中...',
+      ordersMeta: '读取中...'
+    };
+
+    const toggleLatencyStats = {
+      samples: [],
+      record(ms) {
+        this.samples.push(ms);
+        if (this.samples.length > 8) this.samples.shift();
+      },
+      average() {
+        if (!this.samples.length) return 180;
+        return this.samples.reduce((a, b) => a + b, 0) / this.samples.length;
+      },
+      targetLoadingMs() {
+        const avg = this.average();
+        return Math.max(140, Math.min(420, avg * 1.8));
+      }
+    };
+
+    function setButtonState(el, state, onText, offText, loadingText='处理中...') {
+      if (!el) return;
+      el.classList.remove('btn-on', 'btn-off', 'btn-loading');
+      if (state === 'loading') {
+        el.classList.add('btn-loading');
+        el.textContent = loadingText;
+        el.disabled = true;
+      } else if (state === 'on') {
+        el.classList.add('btn-on');
+        el.textContent = onText;
+        el.disabled = false;
+      } else {
+        el.classList.add('btn-off');
+        el.textContent = offText;
+        el.disabled = false;
+      }
+    }
+
+    async function postToggle(path, current, confirmOn, confirmOff, buttonEl, onText, offText) {
+      const next = !current;
+      const ok = confirm(next ? confirmOn : confirmOff);
+      if (!ok) return;
+      setButtonState(buttonEl, 'loading', onText, offText);
+      const startedAt = performance.now();
+      const res = await fetch('http://127.0.0.1:8788' + path, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enabled: next})
+      });
+      await res.json();
+      const elapsed = performance.now() - startedAt;
+      toggleLatencyStats.record(elapsed);
+      const targetLoadingMs = toggleLatencyStats.targetLoadingMs();
+      if (elapsed < targetLoadingMs) {
+        await new Promise(resolve => setTimeout(resolve, targetLoadingMs - elapsed));
+      }
+      setButtonState(buttonEl, next ? 'on' : 'off', onText, offText, `处理中 ${Math.round(elapsed)}ms`);
+      setTimeout(load, 220);
+    }
+
+    async function toggleLive(current) {
+      return postToggle('/api/toggle-live', current, '确认开启真实执行？', '确认关闭真实执行？', document.getElementById('liveToggleBtn'), '实盘已开启', '实盘已关闭');
+    }
+
+    async function toggleAutoTest(current) {
+      return postToggle('/api/toggle-auto-test', current, '确认开启自动测试单？', '确认关闭自动测试单？', document.getElementById('autoTestToggleBtn'), '自动测试单已开启', '自动测试单已关闭');
+    }
+
+    async function toggleAutoLive(current) {
+      return postToggle('/api/toggle-auto-live', current, '确认开启自动正常单？这风险更高。', '确认关闭自动正常单？', document.getElementById('autoLiveToggleBtn'), '自动正常单已开启', '自动正常单已关闭');
+    }
+
+    async function saveRiskSettings(accountTotal) {
+      const baseEquity = parseFloat(document.getElementById('baseEquityInput').value || '0');
+      const riskPct = parseFloat(document.getElementById('riskPctInput').value || '0');
+      const status = document.getElementById('riskSettingsStatus');
+      status.className = 'status-box status-warn';
+      status.textContent = '正在保存风控参数...';
+      const res = await fetch('http://127.0.0.1:8788/api/save-risk-settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({accountTotal, baseEquity, riskPct})
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        status.className = 'status-box status-bad';
+        status.textContent = data.error || '无法设置';
+        return;
+      }
+      status.className = 'status-box status-good';
+      status.textContent = `保存成功：账户基准 ${data.base_equity} / 单笔风险 ${data.risk_per_trade_pct}% / 最大允许风险 ${data.max_risk_per_trade_pct}%`;
+      setTimeout(load, 500);
+    }
+
+    async function load() {
+      const res = await fetch('../data/dashboard/latest.json?_=' + Date.now());
+      const data = await res.json();
+
+      document.getElementById('mode').textContent = data.mode || '-';
+      document.getElementById('updated').textContent = new Date(data.updated_at * 1000).toLocaleString();
+
+      const liveEnabled = Boolean(data.live_execution_probe && data.live_execution_probe.live_enabled);
+      setButtonState(document.getElementById('liveToggleBtn'), liveEnabled ? 'on' : 'off', '实盘已开启', '实盘已关闭');
+      document.getElementById('liveToggleStatus').className = liveEnabled ? 'status-box status-good' : 'status-box status-warn';
+      document.getElementById('liveToggleStatus').textContent = liveEnabled ? '实盘执行：已开启。停止脚本将先尝试真实 Kill Switch。' : '实盘执行：已关闭。当前只允许监控、预演或受限执行。';
+      document.getElementById('liveModeBadge').className = liveEnabled ? 'badge good' : 'badge warn';
+      document.getElementById('liveModeBadge').textContent = liveEnabled ? '实盘中' : '安全模式';
+      document.getElementById('liveToggleBtn').onclick = () => toggleLive(liveEnabled);
+
+      const risk = data.risk_check || {};
+      document.getElementById('riskStatus').innerHTML = risk.allowed
+        ? `<span class="badge good">允许下一步</span><div class="small muted">${risk.reason || ''}</div>`
+        : `<span class="badge bad">禁止交易</span><div class="small muted">${risk.reason || ''}</div>`;
+
+      const account = data.account_state || {};
+      const framework = data.strategy_framework || {};
+      const accountTotal = parseFloat((account.spot?.balances || []).find?.(b => b.coin === 'USDC')?.total || account.perps?.marginSummary?.accountValue || '0') || 0;
+      document.getElementById('baseEquityInput').value = data.account_state?.base_equity || data.account_state?.baseEquity || data.account?.base_equity || data.account?.baseEquity || '';
+      document.getElementById('riskPctInput').value = (data.risk?.risk_per_trade_pct ?? data.risk_check?.risk_per_trade_pct ?? data.analysis?.risk_per_trade_pct ?? '') || '';
+      document.getElementById('saveRiskSettingsBtn').onclick = () => saveRiskSettings(accountTotal);
+      const riskSettingsStatus = document.getElementById('riskSettingsStatus');
+      riskSettingsStatus.className = 'status-box status-warn';
+      riskSettingsStatus.textContent = `当前账户总金额约 ${accountTotal || 0} USDC；账户基准不得超过此数值。`;
+      const tradeSummary = data.trade_record_summary || {};
+      const tradeRecords = Array.isArray(data.trade_records) ? data.trade_records : [];
+      document.getElementById('tradeRecordSummary').textContent = `净盈亏 ${safe(tradeSummary.net_pnl, 0)} / 总手续费 ${safe(tradeSummary.total_fees, 0)} / ${safe(tradeSummary.count, 0)} 笔`;
+      document.getElementById('tradeGrossPnl').className = `summary-value ${pnlClass(tradeSummary.gross_pnl)}`;
+      document.getElementById('tradeGrossPnl').textContent = safe(tradeSummary.gross_pnl, 0);
+      document.getElementById('tradeNetPnl').className = `summary-value ${pnlClass(tradeSummary.net_pnl)}`;
+      document.getElementById('tradeNetPnl').textContent = safe(tradeSummary.net_pnl, 0);
+      document.getElementById('tradeWinStats').textContent = `${safe(tradeSummary.win_rate, 0)}% / ${safe(tradeSummary.win_count, 0)}`;
+      document.getElementById('tradeRecordTable').innerHTML = `
+        <tr><th>开仓时间</th><th>币种</th><th>开仓价格</th><th>平仓价格</th><th>盈亏</th><th>开仓手续费</th><th>平仓手续费</th><th>总手续费</th></tr>
+        ${tradeRecords.slice().reverse().map(r => `
+          <tr>
+            <td class="mono">${safe(r.opened_at_iso)}</td>
+            <td>${safe(r.coin)}</td>
+            <td class="mono">${safe(r.entry_price)}</td>
+            <td class="mono">${safe(r.close_price)}</td>
+            <td class="mono ${pnlClass(r.pnl)}">${safe(r.pnl, 0)}</td>
+            <td class="mono">${safe(r.open_fee, 0)}</td>
+            <td class="mono">${safe(r.close_fee, 0)}</td>
+            <td class="mono">${safe(r.fee, 0)}</td>
+          </tr>`).join('') || '<tr><td colspan="8">暂无本地交易记录</td></tr>'}
+      `;
+      document.getElementById('frameworkTable').innerHTML = [
+        ['大方向时间框架', framework.big_direction_timeframe ?? '1d'],
+        ['主执行时间框架', Array.isArray(framework.main_execution_timeframes) ? framework.main_execution_timeframes.join(' / ') : '-'],
+        ['入场节奏时间框架', framework.timing_timeframe ?? '15m'],
+        ['趋势行情策略', framework.strategy_map?.bullish_trend ?? '-'],
+        ['空头行情策略', framework.strategy_map?.bearish_trend ?? '-'],
+        ['震荡行情策略', framework.strategy_map?.range ?? '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td>${safe(v)}</td></tr>`).join('');
+      const perps = account.perps || {};
+      const spot = account.spot || {};
+      const accountValue = spot.balances?.find?.(b => b.coin === 'USDC')?.total || perps.marginSummary?.accountValue || '-';
+      document.getElementById('accountValue').textContent = accountValue;
+
+      const plan = data.trade_plan || {};
+      const shouldTrade = plan.should_trade || '否';
+      const hasPlan = shouldTrade === '是' || shouldTrade === '等待';
+      const banner = document.getElementById('planBanner');
+      const badge = document.getElementById('planBadge');
+      if (!hasPlan || !plan.direction || plan.direction === '无') {
+        banner.className = 'plan-banner status-bad';
+        banner.innerHTML = `⛔ 当前无优势，不建议交易<br><span class="small muted">${plan.notes || '暂无清晰入场条件，请继续观望。'}</span>`;
+        badge.className = 'badge bad';
+        badge.textContent = '不交易';
+      } else if (shouldTrade === '等待') {
+        banner.className = 'plan-banner status-warn';
+        const waitHint = String(plan.direction || '').includes('做空') ? '等待反弹承压确认，不直接追空。' : '等待更好的入场确认，不追价。';
+        banner.innerHTML = `⏳ 当前以等待为主：${plan.direction}<br><span class="small muted">${plan.notes || waitHint}</span>`;
+        badge.className = 'badge warn';
+        badge.textContent = '等待';
+      } else {
+        banner.className = 'plan-banner status-good';
+        banner.innerHTML = `✅ 当前存在执行计划：${plan.direction}<br><span class="small muted">${plan.notes || '按计划执行，严格止损。'}</span>`;
+        badge.className = 'badge good';
+        badge.textContent = '有计划';
+      }
+
+      document.getElementById('planTable').innerHTML = [
+        ['市场状态', plan.market_state],
+        ['是否建议交易', plan.should_trade],
+        ['交易方向', plan.direction],
+        ['入场位置', plan.entry],
+        ['止损位置', plan.stop_loss],
+        ['止盈目标', Array.isArray(plan.take_profit) ? plan.take_profit.join(' / ') : '-'],
+        ['仓位建议', plan.position_size],
+        ['风险等级', plan.risk_level],
+        ['备注', plan.notes],
+      ].map(([k,v]) => `<tr><th>${k}</th><td>${v ?? '-'}</td></tr>`).join('');
+
+      const usdcSpot = spot.balances?.find?.(b => b.coin === 'USDC');
+      document.getElementById('accountTable').innerHTML = [
+        ['监控地址', maskAddress(account.monitor_wallet_address ?? '-')],
+        ['执行地址', maskAddress(account.execution_wallet_address || '未配置')],
+        ['Spot USDC', usdcSpot?.total ?? '-'],
+        ['Spot 可用', spot.tokenToAvailableAfterMaintenance?.[0]?.[1] ?? '-'],
+        ['Perps 账户净值', perps.marginSummary?.accountValue ?? '-'],
+        ['Perps 总仓位名义价值', perps.marginSummary?.totalNtlPos ?? '-'],
+        ['Perps 总保证金占用', perps.marginSummary?.totalMarginUsed ?? '-'],
+        ['Perps 持仓数量', Array.isArray(perps.assetPositions) ? perps.assetPositions.length : 0],
+        ['挂单数量', Array.isArray(data.open_orders) ? data.open_orders.length : 0],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${v}</td></tr>`).join('');
+
+      const execSummary = data.execution_summary || {};
+      const autoEntry = data.auto_entry_status || {};
+      const autoTestEnabled = Boolean(autoEntry.auto_test_enabled);
+      const autoLiveEnabled = Boolean(autoEntry.auto_live_enabled);
+      setButtonState(document.getElementById('autoTestToggleBtn'), autoTestEnabled ? 'on' : 'off', '自动测试单已开启', '自动测试单已关闭');
+      setButtonState(document.getElementById('autoLiveToggleBtn'), autoLiveEnabled ? 'on' : 'off', '自动正常单已开启', '自动正常单已关闭');
+      document.getElementById('autoTestToggleBtn').onclick = () => toggleAutoTest(autoTestEnabled);
+      document.getElementById('autoLiveToggleBtn').onclick = () => toggleAutoLive(autoLiveEnabled);
+      const autoModeStatus = document.getElementById('autoModeStatus');
+      if (autoLiveEnabled) {
+        autoModeStatus.className = 'status-box status-bad';
+        autoModeStatus.textContent = `自动正常单已开启｜当前模式=${autoEntry.armed_mode || 'live'}｜触发结果=${String(autoEntry.triggered ?? false)}｜原因=${autoEntry.reason || '-'}`;
+      } else if (autoTestEnabled) {
+        autoModeStatus.className = 'status-box status-good';
+        autoModeStatus.textContent = `自动测试单已开启｜当前模式=${autoEntry.armed_mode || 'test'}｜触发结果=${String(autoEntry.triggered ?? false)}｜原因=${autoEntry.reason || '-'}`;
+      } else {
+        autoModeStatus.className = 'status-box status-warn';
+        autoModeStatus.textContent = `自动模式未开启｜当前模式=${autoEntry.armed_mode || 'off'}｜原因=${autoEntry.reason || 'auto entry disabled'}`;
+      }
+      document.getElementById('autoModeTable').innerHTML = [
+        ['自动测试单', String(autoTestEnabled)],
+        ['自动正常单', String(autoLiveEnabled)],
+        ['当前自动模式', autoEntry.armed_mode ?? 'off'],
+        ['计划完整', String(autoEntry.plan_complete ?? false)],
+        ['计划可执行', String(autoEntry.plan_executable ?? false)],
+        ['计划RR(TP1)', autoEntry.plan_rr ?? '-'],
+        ['自动开仓最低RR', (data.analysis && data.analysis.min_auto_rr) ?? 1.5],
+        ['计划数量', autoEntry.plan_qty ?? '-'],
+        ['本轮是否触发', String(autoEntry.triggered ?? false)],
+        ['本轮触发原因', autoEntry.reason ?? '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+      const latestOpen = execSummary.latest_open || {};
+      const latestClose = execSummary.latest_close || {};
+      const latestProtection = execSummary.latest_protection || {};
+      document.getElementById('executionSummaryTable').innerHTML = [
+        ['当前是否空仓', String(execSummary.is_flat ?? '-')],
+        ['当前持仓数', execSummary.current_position_count ?? '-'],
+        ['执行签名是否就绪', String(execSummary.live_ready ?? '-')],
+        ['自动测试单开关', String(autoEntry.auto_test_enabled ?? false)],
+        ['自动正常单开关', String(autoEntry.auto_live_enabled ?? false)],
+        ['当前自动模式', autoEntry.armed_mode ?? 'off'],
+        ['计划完整', String(autoEntry.plan_complete ?? false)],
+        ['计划可执行', String(autoEntry.plan_executable ?? false)],
+        ['计划RR(TP1)', autoEntry.plan_rr ?? '-'],
+        ['计划数量', autoEntry.plan_qty ?? '-'],
+        ['本轮是否触发', String(autoEntry.triggered ?? false)],
+        ['本轮触发原因', autoEntry.reason ?? '-'],
+        ['最近开仓状态', latestOpen.status ?? '无'],
+        ['最近开仓币种', latestOpen.coin ?? '无'],
+        ['最近平仓状态', latestClose.status ?? '无'],
+        ['最近平仓币种', Array.isArray(latestClose.coins) ? latestClose.coins.join(', ') : '无'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      document.getElementById('protectionSummaryTable').innerHTML = [
+        ['最近保护单状态', latestProtection.status ?? '无'],
+        ['最近保护单币种', latestProtection.coin ?? '无'],
+        ['最近止损价', latestProtection.stop_loss ?? '无'],
+        ['最近止盈价', latestProtection.take_profit ?? '无'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const market = data.market_data || {};
+      const signalRows = (data.signal_scores || []).map(item => `
+        <tr>
+          <td>${item.symbol}</td>
+          <td class="mono">${item.score}</td>
+          <td>${item.bias}</td>
+          <td>${item.daily_trend || '-'}</td>
+          <td>${item.setup_quality || '-'}</td>
+          <td class="small">${JSON.stringify(item.states)}</td>
+          <td class="small">${item.notes}</td>
+        </tr>
+      `).join('');
+      document.getElementById('signalTable').innerHTML = `
+        <tr><th>币种</th><th>评分</th><th>偏向</th><th>日线趋势</th><th>机会级别</th><th>周期状态</th><th>备注</th></tr>
+        ${signalRows || '<tr><td colspan="7">暂无数据</td></tr>'}
+      `;
+
+      const preview = data.execution_preview || {};
+      const strategyPlan = data.strategy_plan || {};
+      const leveragePolicy = data.leverage_policy || {};
+      const executionModeStatus = document.getElementById('executionModeStatus');
+      const execSide = strategyPlan.side || preview.side || 'none';
+      if (execSide === 'buy') {
+        executionModeStatus.className = 'status-box status-good';
+        executionModeStatus.textContent = '当前执行预演方向：做多';
+      } else if (execSide === 'sell') {
+        executionModeStatus.className = 'status-box status-bad';
+        executionModeStatus.textContent = '当前执行预演方向：做空';
+      } else {
+        executionModeStatus.className = 'status-box status-warn';
+        executionModeStatus.textContent = '当前执行预演方向：无';
+      }
+      document.getElementById('executionTable').innerHTML = [
+        ['执行模式', preview.mode],
+        ['币种', strategyPlan.symbol || preview.symbol],
+        ['方向', strategyPlan.side || preview.side],
+        ['结构来源时间框架', strategyPlan.timeframe_source ?? '-'],
+        ['结构K线窗口', '1h 最近 200 根'],
+        ['结构支撑位', strategyPlan.support ?? '-'],
+        ['结构阻力位', strategyPlan.resistance ?? '-'],
+        ['原始结构止损位', strategyPlan.raw_structure_stop ?? '-'],
+        ['ATR缓冲值', strategyPlan.atr_buffer ?? '-'],
+        ['缓冲后止损位', strategyPlan.buffered_stop_loss ?? strategyPlan.stop_loss ?? '-'],
+        ['计划入场价', strategyPlan.entry || preview.entry_price],
+        ['计划止损价', strategyPlan.stop_loss || preview.stop_loss],
+        ['计划TP1', strategyPlan.take_profit_1 || preview.take_profit_1],
+        ['计划TP2', strategyPlan.take_profit_2 || preview.take_profit_2],
+        ['RR(TP1)', strategyPlan.risk_reward_tp1 ?? '-'],
+        ['RR(TP2)', strategyPlan.risk_reward_tp2 ?? '-'],
+        ['单笔风险金额', strategyPlan.risk_amount || preview.risk_amount],
+        ['最大允许风险金额', strategyPlan.max_risk_amount ?? '-'],
+        ['预估仓位价值', strategyPlan.position_value || preview.position_value],
+        ['预估数量', strategyPlan.quantity_estimate || preview.quantity_estimate],
+        ['建议杠杆', strategyPlan.leverage ?? '-'],
+        ['测试单固定杠杆', (data.execution && data.execution.auto_test_leverage) ?? 5],
+        ['自动正常单最小杠杆', (data.execution && data.execution.auto_live_leverage_min) ?? 5],
+        ['自动正常单最大杠杆', (data.execution && data.execution.auto_live_leverage_max) ?? 8],
+        ['计划完整', String(strategyPlan.plan_complete ?? false)],
+        ['可执行', String(strategyPlan.executable ?? false)],
+        ['阻塞原因', strategyPlan.block_reason ?? '-'],
+        ['警告', Array.isArray(preview.warnings) ? preview.warnings.join(' / ') : '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const rrRules = Array.isArray(leveragePolicy.rr_rules) ? leveragePolicy.rr_rules : [];
+      document.getElementById('leverageSummary').textContent = `测试 ${leveragePolicy.test_fixed ?? 5}x / 实盘 ${leveragePolicy.live_min ?? 5}-${leveragePolicy.live_max ?? 8}x`;
+      document.getElementById('leveragePolicyTable').innerHTML = [
+        ['测试单固定杠杆', leveragePolicy.test_fixed ?? 5],
+        ['自动正常单最小杠杆', leveragePolicy.live_min ?? 5],
+        ['自动正常单最大杠杆', leveragePolicy.live_max ?? 8],
+        ['RR=3.0~3.49', rrRules[0] ? `${rrRules[0].leverage}x` : '-'],
+        ['RR=3.5~3.99', rrRules[1] ? `${rrRules[1].leverage}x` : '-'],
+        ['RR>=4.0', rrRules[2] ? `${rrRules[2].leverage}x` : '-'],
+        ['当前计划建议杠杆', strategyPlan.leverage ?? '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const macdPlan = data.macd_divergence_plan || {};
+      const macdPlanStatus = document.getElementById('macdPlanStatus');
+      document.getElementById('macdPlanSummary').textContent = macdPlan.divergence_detected
+        ? `${macdPlan.symbol || '-'} / ${macdPlan.divergence_side || '-'} / RR ${macdPlan.risk_reward_tp1 || '-'}`
+        : '当前无可用背离信号';
+      if (macdPlan.divergence_detected) {
+        macdPlanStatus.className = macdPlan.executable ? 'status-box status-good' : 'status-box status-warn';
+        macdPlanStatus.textContent = macdPlan.executable
+          ? `MACD 背离计划可执行｜${macdPlan.symbol}｜${macdPlan.divergence_side}｜RR=${macdPlan.risk_reward_tp1}`
+          : `MACD 背离已识别，但暂未执行｜原因=${macdPlan.block_reason || '-'}`;
+      } else {
+        macdPlanStatus.className = 'status-box status-warn';
+        macdPlanStatus.textContent = '当前未识别到可用的 1h MACD 背离计划';
+      }
+      document.getElementById('macdPlanTable').innerHTML = [
+        ['策略类型', macdPlan.strategy_type || '-'],
+        ['是否检测到背离', String(macdPlan.divergence_detected ?? false)],
+        ['背离方向', macdPlan.divergence_side || '-'],
+        ['币种', macdPlan.symbol || '-'],
+        ['方向', macdPlan.side || '-'],
+        ['入场价', macdPlan.entry || '-'],
+        ['入场区下沿', macdPlan.entry_zone_low || '-'],
+        ['入场区上沿', macdPlan.entry_zone_high || '-'],
+        ['止损价', macdPlan.stop_loss || '-'],
+        ['止盈价', macdPlan.take_profit_1 || '-'],
+        ['RR', macdPlan.risk_reward_tp1 || '-'],
+        ['支撑位', macdPlan.support || '-'],
+        ['阻力位', macdPlan.resistance || '-'],
+        ['背离锚点最高', macdPlan.divergence_anchor_high || '-'],
+        ['背离锚点最低', macdPlan.divergence_anchor_low || '-'],
+        ['锚点时间', macdPlan.divergence_anchor_time ? new Date(macdPlan.divergence_anchor_time).toLocaleString() : '-'],
+        ['是否可执行', String(macdPlan.executable ?? false)],
+        ['阻塞原因', macdPlan.block_reason || '-'],
+        ['备注', macdPlan.notes || '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const cacheRows = [];
+      let cacheReady = true;
+      for (const [symbol, frames] of Object.entries(market)) {
+        for (const tf of ['15m', '1h']) {
+          const snap = frames?.[tf] || {};
+          const cache = snap.raw?.cache;
+          if (!cache) cacheReady = false;
+          cacheRows.push(`
+            <tr>
+              <td>${symbol}</td>
+              <td>${tf}</td>
+              <td class="mono">${cache?.count ?? 0}</td>
+              <td class="mono">${cache?.latest_open_time ? new Date(cache.latest_open_time).toLocaleString() : '-'}</td>
+              <td>${cache?.enabled ? '是' : '否'}</td>
+              <td>${cache?.healthy === true ? '健康' : cache?.healthy === false ? '异常' : '-'}</td>
+              <td>${cache?.rebuild_mode === true ? '自动重建中' : cache?.rebuild_mode === false ? '增量更新' : '-'}</td>
+              <td>${cache?.rebuild_status || '-'}</td>
+              <td class="small">${cache?.rebuild_error || '-'}</td>
+            </tr>
+          `);
+        }
+      }
+      const cacheStatusBox = document.getElementById('cacheStatusBox');
+      cacheStatusBox.className = cacheReady ? 'status-box status-good' : 'status-box status-warn';
+      cacheStatusBox.textContent = cacheReady ? '本地 K 线缓存已接管：15m / 1h 均优先使用最近 200 条缓存。' : '部分缓存未命中，请查看下方明细。';
+      document.getElementById('cacheSummary').textContent = cacheReady ? '全部健康 / 增量更新' : '存在异常或重建';
+      document.getElementById('cacheStatusTable').innerHTML = `
+        <tr><th>币种</th><th>周期</th><th>缓存条数</th><th>最新K线时间</th><th>命中缓存</th><th>缓存健康</th><th>更新模式</th><th>重建结果</th><th>失败原因</th></tr>
+        ${cacheRows.join('')}
+      `;
+
+      const killSwitch = data.kill_switch_preview || {};
+      const ksActions = Array.isArray(killSwitch.actions) ? killSwitch.actions : [];
+      const ksActionHtml = ksActions.length
+        ? ksActions.map(a => `
+            <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(159,176,211,.12)">
+              <div><b>${a.coin}</b> | ${a.direction} | size=${a.current_size}</div>
+              <div class="small muted">entry=${safe(a.entry_price)} | value=${safe(a.position_value)} | upnl=${safe(a.unrealized_pnl)} | roe=${safe(a.roe)}</div>
+              <div class="small">动作：${a.planned_action}</div>
+              <div class="small muted">执行地址：${maskAddress(a.execution_wallet_address || '未配置')}</div>
+            </div>
+          `).join('')
+        : '无';
+      document.getElementById('killSwitchTable').innerHTML = [
+        ['模式', killSwitch.mode],
+        ['执行地址', maskAddress(killSwitch.execution_wallet_address || '未配置')],
+        ['检测到持仓数', killSwitch.positions_found],
+        ['计划动作明细', ksActionHtml],
+        ['警告', Array.isArray(killSwitch.warnings) ? killSwitch.warnings.join(' / ') : '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td>${safe(v)}</td></tr>`).join('');
+
+      const liveProbe = data.live_execution_probe || {};
+      const liveReady = Boolean(liveProbe.sdk_available && liveProbe.has_secret && liveProbe.execution_wallet_configured && liveProbe.monitor_wallet_configured && liveProbe.address_match && liveProbe.exchange_init_ok);
+      document.getElementById('liveProbeStatus').innerHTML = liveReady
+        ? `<div class="status-box status-good">✅ 执行钱包签名已就绪（仅表示签名链路就绪，未开启真实实盘）</div>`
+        : `<div class="status-box status-warn">⚠️ 执行钱包签名未完全就绪，请检查下方状态项</div>`;
+      document.getElementById('liveProbeTable').innerHTML = [
+        ['SDK 可用', String(liveProbe.sdk_available)],
+        ['已提供私钥环境变量', String(liveProbe.has_secret)],
+        ['执行地址已配置', String(liveProbe.execution_wallet_configured)],
+        ['监控地址已配置', String(liveProbe.monitor_wallet_configured)],
+        ['执行地址与私钥匹配', String(liveProbe.address_match)],
+        ['Exchange 初始化通过', String(liveProbe.exchange_init_ok)],
+        ['Live 开关状态', String(liveProbe.live_enabled)],
+        ['错误', liveProbe.error || '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const reduceOnly = data.reduce_only_probe || {};
+      document.getElementById('reduceOnlyTable').innerHTML = [
+        ['状态', reduceOnly.status || '-'],
+        ['币种', reduceOnly.coin || '-'],
+        ['仓位数量', reduceOnly.position_size || '-'],
+        ['开仓价', reduceOnly.entry_price || '-'],
+        ['持仓价值', reduceOnly.position_value || '-'],
+        ['未实现盈亏', reduceOnly.unrealized_pnl || '-'],
+        ['平仓方向是否买入', String(reduceOnly.close_is_buy ?? '-')],
+        ['IOC 价格', reduceOnly.limit_px || '-'],
+        ['nonce', reduceOnly.nonce || '-'],
+        ['执行地址(配置)', maskAddress(reduceOnly.execution_wallet || '-')],
+        ['私钥推导地址', maskAddress(reduceOnly.derived_address || '-')],
+        ['签名就绪', String(reduceOnly.signature_ready ?? false)],
+        ['具备真实提交条件', String(reduceOnly.can_submit_live ?? false)],
+        ['阻塞项', Array.isArray(reduceOnly.blockers) && reduceOnly.blockers.length ? reduceOnly.blockers.join(' / ') : '无'],
+        ['备注', reduceOnly.note || reduceOnly.reason || '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const testRules = data.test_order_rules || {};
+      document.getElementById('testRulesTable').innerHTML = [
+        ['测试单模式', String(testRules.enabled ?? false)],
+        ['单笔最大仓位(USDC)', testRules.max_usdc ?? '-'],
+        ['单笔最大亏损(账户%)', testRules.max_loss_pct ?? '-'],
+        ['每日测试最大亏损(USDC)', testRules.daily_max_loss_usdc ?? '-'],
+      ].map(([k,v]) => `<tr><th>${k}</th><td class="mono">${safe(v)}</td></tr>`).join('');
+
+      const positions = Array.isArray(perps.assetPositions) ? perps.assetPositions : [];
+      const accountMeta = data.account_snapshot_meta || {};
+      const snapshotText = `快照时间：${accountMeta.updated_at ? new Date(accountMeta.updated_at * 1000).toLocaleString() : '-'}｜持仓 ${safe(accountMeta.positions_count, 0)}｜挂单 ${safe(accountMeta.orders_count, 0)}${accountMeta.stale ? '｜旧快照回退中' : ''}`;
+      const positionRows = positions.map(pos => {
+        const p = pos.position || pos;
+        return `
+          <tr>
+            <td>${safe(p.coin)}</td>
+            <td class="mono">${safe(p.szi)}</td>
+            <td class="mono">${safe(p.entryPx)}</td>
+            <td class="mono">${safe(p.positionValue)}</td>
+            <td class="mono">${safe(p.returnOnEquity)}</td>
+            <td class="mono">${safe(p.unrealizedPnl)}</td>
+          </tr>`;
+      }).join('');
+      const tracker = data.position_tracker || {};
+      const nowSec = Math.floor(Date.now() / 1000);
+      const freshPositionsHtml = `
+        <tr><th>币种</th><th>仓位</th><th>开仓价</th><th>持仓价值</th><th>ROE</th><th>未实现盈亏</th><th>持仓时间</th><th>自动平仓倒计时</th></tr>
+        ${(positions.map(pos => {
+          const p = pos.position || pos;
+          const tracked = tracker[p.coin] || {};
+          const openedAt = Number(tracked.opened_at_ts || 0);
+          const heldSec = Number(tracked.hold_seconds || 0);
+          const remainSec = Number(tracked.auto_close_countdown_seconds || 0);
+          const heldText = openedAt > 0 ? `${Math.floor(heldSec / 3600)}h ${Math.floor((heldSec % 3600) / 60)}m` : '-';
+          const remainText = openedAt > 0 ? `${Math.floor(remainSec / 3600)}h ${Math.floor((remainSec % 3600) / 60)}m` : '-';
+          return `
+            <tr>
+              <td>${safe(p.coin)}</td>
+              <td class="mono">${safe(p.szi)}</td>
+              <td class="mono">${safe(p.entryPx)}</td>
+              <td class="mono">${safe(p.positionValue)}</td>
+              <td class="mono">${safe(p.returnOnEquity)}</td>
+              <td class="mono">${safe(p.unrealizedPnl)}</td>
+              <td class="mono">${heldText}</td>
+              <td class="mono">${remainText}</td>
+            </tr>`;
+        }).join('')) || '<tr><td colspan="8">当前无持仓</td></tr>'}
+      `;
+      if (positions.length > 0 || !accountRenderCache.positionsHtml) {
+        accountRenderCache.positionsHtml = freshPositionsHtml;
+        accountRenderCache.positionsMeta = snapshotText;
+      } else {
+        accountRenderCache.positionsMeta = snapshotText + '｜当前轮空数据，暂保留上一版显示';
+      }
+      document.getElementById('positionsSnapshotMeta').textContent = accountRenderCache.positionsMeta;
+      document.getElementById('positionsTable').innerHTML = accountRenderCache.positionsHtml;
+
+      const orders = Array.isArray(data.open_orders) ? data.open_orders : [];
+      const orderRows = orders.map(o => `
+        <tr>
+          <td>${safe(o.coin)}</td>
+          <td>${safe(o.side)}</td>
+          <td class="mono">${safe(o.limitPx)}</td>
+          <td class="mono">${safe(o.sz)}</td>
+          <td>${safe(o.orderType)}</td>
+          <td class="mono">${safe(o.timestamp)}</td>
+        </tr>`).join('');
+      const freshOrdersHtml = `
+        <tr><th>币种</th><th>方向</th><th>价格</th><th>数量</th><th>类型</th><th>时间</th></tr>
+        ${orderRows || '<tr><td colspan="6">当前无挂单</td></tr>'}
+      `;
+      if (orders.length > 0 || !accountRenderCache.ordersHtml) {
+        accountRenderCache.ordersHtml = freshOrdersHtml;
+        accountRenderCache.ordersMeta = snapshotText;
+      } else {
+        accountRenderCache.ordersMeta = snapshotText + '｜当前轮空数据，暂保留上一版显示';
+      }
+      document.getElementById('ordersSnapshotMeta').textContent = accountRenderCache.ordersMeta;
+      document.getElementById('ordersTable').innerHTML = accountRenderCache.ordersHtml;
+
+      const events = Array.isArray(data.recent_events) ? data.recent_events : [];
+      const eventRows = events.slice().reverse().map(e => `
+        <tr>
+          <td class="small">${safe(e.ts)}</td>
+          <td>${safe(e.kind)}</td>
+          <td>${safe(e.status)}</td>
+          <td class="small">${JSON.stringify(e)}</td>
+        </tr>`).join('');
+      const latestEvent = (data.recent_events || []).slice(-1)[0] || null;
+      document.getElementById('eventsSummary').textContent = latestEvent
+        ? `${latestEvent.kind || '-'} / ${latestEvent.status || '-'} / ${latestEvent.ts || '-'}`
+        : '暂无执行日志';
+      document.getElementById('eventsTable').innerHTML = `
+        <tr><th>时间</th><th>类型</th><th>状态</th><th>详情</th></tr>
+        ${eventRows || '<tr><td colspan="4">暂无日志</td></tr>'}
+      `;
+
+      const rows = [];
+      for (const [symbol, frames] of Object.entries(market)) {
+        for (const [tf, snap] of Object.entries(frames)) {
+          if (snap.error) {
+            rows.push(`<tr><td>${symbol}</td><td>${tf}</td><td colspan="5" class="bad">${snap.error}</td></tr>`);
+          } else {
+            rows.push(`<tr>
+              <td>${symbol}</td>
+              <td>${tf}</td>
+              <td class="mono">${snap.price}</td>
+              <td class="mono">${snap.open}</td>
+              <td class="mono">${snap.high}</td>
+              <td class="mono">${snap.low}</td>
+              <td class="mono">${snap.close}</td>
+            </tr>`);
+          }
+        }
+      }
+      document.getElementById('marketTable').innerHTML = `
+        <tr><th>币种</th><th>周期</th><th>现价</th><th>开盘</th><th>最高</th><th>最低</th><th>收盘</th></tr>
+        ${rows.join('')}
+      `;
+    }
+
+    load();
+    setInterval(load, 15000);
+  </script>
+</body>
+</html>
