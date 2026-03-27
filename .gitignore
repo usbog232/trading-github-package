@@ -1,0 +1,15 @@
+.env
+.venv/
+logs/
+data/dashboard/
+*.pid
+__pycache__/
+*.pyc
+.DS_Store
+data/journal/position_tracker.json
+data/journal/trade_records.json
+data/journal/events.json
+data/journal/protection_state.json
+data/market_cache/candles.db
+.pytest_cache/
+.DS_Store
