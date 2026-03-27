@@ -1,16 +1,17 @@
-这是给 GitHub 准备的 trading 安全上传版。
+GitHub 上传说明
+================
 
-你应该上传这个目录里的内容，而不是直接上传原始运行目录。
+本目录为适合上传到 GitHub 的精简版本。
 
-已做的处理：
-- 不包含 .env
-- 不包含 .venv
-- 不包含 logs/
-- 不包含 data/dashboard/latest.json
-- 不包含 *.pid
-- 保留 src/web/config/requirements/启停脚本/Ubuntu 部署脚本
+已排除内容：
+- .env
+- .venv
+- logs/
+- data/dashboard/
+- *.pid
+- 本地交易账本与本地缓存数据库
 
-上传前建议你再确认：
-1. config/settings.example.json 是否适合作为公开示例
-2. README 是否需要补充你的项目说明
-3. 不要把任何真实私钥、真实 .env、真实日志再拷进去
+上传前建议确认：
+1. `config/settings.example.json` 是否符合公开示例要求
+2. 仓库说明文档是否符合公开发布要求
+3. 不要将真实 `.env`、真实 `config/settings.json`、日志或私钥重新加入仓库
